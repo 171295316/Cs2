@@ -1,0 +1,11 @@
+{
+  "name": "cs2-market",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "build": "pnpm --filter cs2-market-web build",
+    "lint": "pnpm --filter cs2-market-web lint",
+    "typecheck": "pnpm --filter cs2-market-web typecheck",
+    "test": "pnpm --filter cs2-market-web test"
+  }
+}

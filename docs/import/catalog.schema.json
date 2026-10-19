@@ -1,0 +1,248 @@
+{
+  "$defs": {
+    "ItemInput": {
+      "additionalProperties": false,
+      "properties": {
+        "external_key": {
+          "maxLength": 90,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9_.:/-]+$",
+          "title": "External Key",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "skin",
+            "knife",
+            "glove",
+            "case",
+            "collection_package",
+            "sticker",
+            "capsule",
+            "agent",
+            "music_kit",
+            "keychain",
+            "graffiti",
+            "patch",
+            "tool",
+            "other"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "name_en": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Name En",
+          "type": "string"
+        },
+        "name_zh": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name Zh"
+        },
+        "market_hash_name": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Market Hash Name"
+        },
+        "image_url": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "maxLength": 2083,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image Url"
+        },
+        "tradable": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tradable"
+        },
+        "marketable": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Marketable"
+        },
+        "variants": {
+          "items": {
+            "$ref": "#/$defs/VariantInput"
+          },
+          "maxItems": 500,
+          "title": "Variants",
+          "type": "array"
+        }
+      },
+      "required": [
+        "external_key",
+        "category",
+        "name_en"
+      ],
+      "title": "ItemInput",
+      "type": "object"
+    },
+    "VariantInput": {
+      "additionalProperties": false,
+      "properties": {
+        "external_key": {
+          "maxLength": 90,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9_.:/-]+$",
+          "title": "External Key",
+          "type": "string"
+        },
+        "wear": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Wear"
+        },
+        "stattrak": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stattrak"
+        },
+        "souvenir": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Souvenir"
+        },
+        "paint_index": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Paint Index"
+        },
+        "market_hash_name": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Market Hash Name"
+        }
+      },
+      "required": [
+        "external_key"
+      ],
+      "title": "VariantInput",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "source_code": {
+      "maxLength": 90,
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9_.:/-]+$",
+      "title": "Source Code",
+      "type": "string"
+    },
+    "dataset_revision": {
+      "maxLength": 250,
+      "minLength": 1,
+      "title": "Dataset Revision",
+      "type": "string"
+    },
+    "evidence_url": {
+      "format": "uri",
+      "maxLength": 2083,
+      "minLength": 1,
+      "title": "Evidence Url",
+      "type": "string"
+    },
+    "verified_at": {
+      "format": "date-time",
+      "title": "Verified At",
+      "type": "string"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/ItemInput"
+      },
+      "maxItems": 1000,
+      "minItems": 1,
+      "title": "Items",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source_code",
+    "dataset_revision",
+    "evidence_url",
+    "verified_at",
+    "items"
+  ],
+  "title": "CatalogImport",
+  "type": "object"
+}

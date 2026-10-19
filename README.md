@@ -20,3 +20,84 @@ CS2 全品类饰品历史价格与全市场存世量分析平台。
 
 ## 安全与授权
 第三方 API 调用、历史批量回填、数据缓存和再分发必须符合来源许可。不要提交任何 token、API key 或 Steam 密码。生产禁止演示数据冒充真实行情。
+
+## 本地运行（P0）
+要求 Docker Compose v2，或 Node 22 + pnpm 11、Python 3.12、PostgreSQL 16、Redis 7。
+
+```bash
+cp .env.example .env
+# 在 .env 中设置随机 POSTGRES_PASSWORD 和 IMPORT_TOKEN（例如 openssl rand -hex 32）
+docker compose up --build
+# Web http://localhost:3000，API http://localhost:8000/docs
+# 就绪检查 http://localhost:8000/readyz；存活检查 /healthz
+docker compose exec api alembic current
+```
+
+数据库保存在命名卷中。API 启动前自动执行迁移；生产请在单独发布任务中执行迁移，并先备份数据库。不要并行启动多个迁移进程。worker 目前仅发送心跳；未经授权的数据抓取默认关闭。
+
+```bash
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm typecheck
+pnpm build
+# 启动 API 后运行真实浏览器测试：pnpm test
+pnpm --filter cs2-market-web dev
+python -m venv .venv
+. .venv/bin/activate
+pip install -r apps/api/requirements-dev.txt
+# 设置 DATABASE_URL、REDIS_URL 指向本地服务；宿主开发需自行开放 DB/Redis 端口
+cd apps/api
+alembic upgrade head
+python -m pytest -q
+uvicorn app.main:app --reload
+# 另一个终端在仓库根目录
+ruff check --config apps/api/pyproject.toml apps/api apps/worker
+mypy apps/api/app
+```
+
+不配置 DATABASE_URL 时仅用于本地 SQLite 工程验证，不代表已验证 PostgreSQL。CI 使用 PostgreSQL 16 做升级、回滚再升级测试。`/readyz` 在 DB、迁移表或 Redis 不可用时返回 503，错误细节不向客户端泄漏。
+
+## P1 目录迁移、来源与导入
+
+`alembic upgrade head` 创建目录、变体、来源和映射。数据许可结论与限制见 [docs/data-sources.md](docs/data-sources.md)。生产默认空目录，未导入真实数据，不把未知值转换成 0。完整 JSON 导入格式见 [catalog.schema.json](docs/import/catalog.schema.json) 和 API `/docs`。
+
+在核实真实数据集商业再分发权限后，于 `apps/api` 目录执行（以下参数应替换为实际依据）：
+
+```bash
+python -m app.admin --code SOURCE_CODE --name SOURCE_NAME \
+  --homepage https://source.example --license-reference https://source.example/rights \
+  --confirm-redistribution-rights
+```
+
+该命令显式记录人工许可审批，不会代替法律/资产权利核验。`.env` 内设置 `IMPORT_TOKEN` 后重启 API；token 仅放服务端。规范化数据 JSON 必须有 source_code、dataset_revision、evidence_url、verified_at（带时区）和 items，每个基础项/变体提供来源 external_key。核验时间不允许未来日期；不接受没有来源证据的导入。
+
+```bash
+# 此环境变量只在管理终端使用；不提交、不放 NEXT_PUBLIC_*。
+curl --fail -X POST http://localhost:8000/internal/import/catalog \
+  -H "Authorization: Bearer ${IMPORT_TOKEN}" -H 'Content-Type: application/json' \
+  --data-binary @catalog-batch.json
+```
+
+ByMykel 离线适配（输入必须来自同一个已核实、已固定版本的实际文件；不自动下载）：
+
+```bash
+python -m app.bymykel --en skins_not_grouped.en.json --zh skins_not_grouped.zh.json \
+  --category skin --revision ACTUAL_UPSTREAM_COMMIT \
+  --verified-at ACTUAL_VERIFICATION_TIME_WITH_TIMEZONE \
+  --evidence-url https://github.com/ByMykel/CSGO-API/blob/ACTUAL_UPSTREAM_COMMIT/public/api/en/skins_not_grouped.json \
+  --out catalog-batch.json
+```
+
+中英文按源 ID 对齐。非枪皮文件按实际类别传入；不得混合分类。每批最多 1000 基础项且 2 MiB；大文件分批后分别提交。相同来源 external_key 不允许重新绑定，来源/版本冲突返回 409 并回滚整批。没有重试抓取或绕过平台限制的逻辑。
+
+目录 API：`/v1/items?query=&category=&limit=&cursor=`，`/v1/items/{uuid}`，`/v1/items/{uuid}/variants`，`/v1/sources`。分页为稳定 ID 游标，不支持猜测的排名排序；改变筛选条件后从第一页重新开始。详情返回来源、核验时间、版本、证据链接。
+
+端到端验证（先迁移并启动 API，然后生产构建 Web）：
+
+```bash
+pnpm build
+pnpm --filter cs2-market-web exec playwright install --with-deps chromium
+pnpm --filter cs2-market-web test:e2e
+```
+
+CI 验证 SQLite 单测、真实 PostgreSQL 迁移与事务、Redis readiness、浏览器核心路径，并另用 Docker Compose 构建启动全部服务。阶段结果见 docs/P0-validation.md 和 docs/P1-validation.md。P2–P4 为后续阶段，当前详情中的价格/供给面板保持无数据状态。
