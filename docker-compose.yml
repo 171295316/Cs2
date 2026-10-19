@@ -21,6 +21,9 @@ services:
       DATABASE_URL: postgresql+psycopg://cs2:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/cs2
       REDIS_URL: redis://redis:6379/0
       IMPORT_TOKEN: ${IMPORT_TOKEN:-}
+      STEAM_MARKET_ENABLED: ${STEAM_MARKET_ENABLED:-0}
+      STEAM_PUBLISHER_KEY: ${STEAM_PUBLISHER_KEY:-}
+      STEAM_CS2_MARKET_PERMISSION_CONFIRMED: ${STEAM_CS2_MARKET_PERMISSION_CONFIRMED:-0}
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_healthy}

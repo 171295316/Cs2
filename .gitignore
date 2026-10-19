@@ -16,3 +16,7 @@ coverage/
 
 test-results/
 playwright-report/
+
+# 外部供应商未核验原始响应，只保留在私有数据目录
+provider-evidence/
+*.steam-evidence.json

@@ -179,3 +179,9 @@ API_URL=http://127.0.0.1:8000 pnpm test
 跨平台对齐须有人工核验：使用同样的管理鉴权向 `/internal/import/mappings` 提交 source_code、verified_at、dataset_revision、evidence_url 和 mappings（external_key、既有 item_id、可选 variant_id）。模板见 `docs/import/mappings.schema.json`。该接口只关联已经核实的来源 ID，不按展示名称猜测；已有映射不得重新绑定，变体必须属于指定基础物品。先登记映射，再导入该来源的价格/供给；多来源价格依然分别查询，不拼接。
 
 图表为秒级时间轴；若同一秒内存在多条实际观测，或整数超出浏览器安全精度，会提示精度限制并保留精确原始表，不擅自聚合、修改时间或截断数值。
+
+## Steam 官方市场连接阶段
+
+已实现官方发行商接口的配置检查、单次请求和原始响应隔离；默认关闭。**目前尚未取得 CS2 发行商接口权限和真实响应，未导入真实 Steam 价格。** 普通 Steam Web API Key 不适用于此接口。详见 [配置、权限与运行步骤](docs/steam-official.md)。本阶段沿用迁移 0005，未新增行情或数据表。
+
+本地验证：Ruff、mypy 通过；pytest 84 passed / 1 skipped（PostgreSQL 专项测试由 CI 执行）。新增测试全部使用隔离模拟响应，不伪装真实数据。
