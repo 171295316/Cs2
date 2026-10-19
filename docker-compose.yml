@@ -1,0 +1,15 @@
+services:
+  web:
+    build: ./apps/web
+    ports: ["3000:3000"]
+  api:
+    build: ./apps/api
+    ports: ["8000:8000"]
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: cs2
+      POSTGRES_PASSWORD: cs2
+      POSTGRES_DB: cs2
+  redis:
+    image: redis:7-alpine
