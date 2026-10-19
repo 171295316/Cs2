@@ -10,6 +10,7 @@ from sqlalchemy import text
 from app.db import engine
 from app.http import RequestProtection
 from app.limits import ImportBodyLimit
+from app.mappings import router as mappings_router
 from app.prices import router as prices_router
 from app.rankings import router as rankings_router
 from app.routes import router
@@ -47,3 +48,4 @@ app.include_router(router)
 app.include_router(prices_router)
 app.include_router(supply_router)
 app.include_router(rankings_router)
+app.include_router(mappings_router)

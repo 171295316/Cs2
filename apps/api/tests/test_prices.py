@@ -115,3 +115,31 @@ def test_import_jobs_record_success_and_failure_without_raw_payload(db, monkeypa
     failed = db.scalar(select(ImportJob).where(ImportJob.status == 'failed'))
     assert '冲突' in failed.error_summary
     assert 'minor_units' not in failed.error_summary
+
+
+def test_verified_cross_platform_mapping_does_not_merge_price_sources(db, monkeypatch):
+    from app.models import SourceGrant
+
+    from tests.test_catalog import approve
+    item = setup_market(db, monkeypatch)
+    approve(db, 'verified-other-source')
+    db.add(SourceGrant(id=stable_id('grant:verified-other'), source_id=stable_id('source:verified-other-source'),
+                       dataset='prices', license_reference='TEST ONLY', enabled=True))
+    db.commit()
+    payload = {'source_code': 'verified-other-source', 'verified_at': '2026-01-01T00:00:00Z',
+               'dataset_revision': 'test-verified-map', 'evidence_url': 'https://example.invalid/test-only-map',
+               'mappings': [{'external_key': 'platform-id-123', 'item_id': item}]}
+    headers = {'Authorization': 'Bearer test-only-secret'}
+    assert client.post('/internal/import/mappings', json=payload, headers=headers).status_code == 200
+    assert client.post('/internal/import/mappings', json=payload, headers=headers).status_code == 200
+    assert post([RECORD]).status_code == 200
+    other = {**RECORD, 'external_key': 'platform-id-123', 'minor_units': 999}
+    assert post([other], source='verified-other-source').status_code == 200
+    unselected = client.get(f'/v1/items/{item}/prices').json()
+    assert unselected['status'] == 'unavailable'
+    assert unselected['series'] == []
+    assert len(unselected['options']) == 2
+    assert client.get(f'/v1/items/{item}/prices?source=test-fixture').json()['series'][0]['minor_units'] == '12345'
+    assert client.get(f'/v1/items/{item}/prices?source=verified-other-source').json()['series'][0]['minor_units'] == '999'
+    wrong = {**payload, 'mappings': [{'external_key': 'platform-id-123', 'item_id': '00000000-0000-0000-0000-000000000000'}]}
+    assert client.post('/internal/import/mappings', json=wrong, headers=headers).status_code == 409
