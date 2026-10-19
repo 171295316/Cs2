@@ -143,3 +143,13 @@ def test_verified_cross_platform_mapping_does_not_merge_price_sources(db, monkey
     assert client.get(f'/v1/items/{item}/prices?source=verified-other-source').json()['series'][0]['minor_units'] == '999'
     wrong = {**payload, 'mappings': [{'external_key': 'platform-id-123', 'item_id': '00000000-0000-0000-0000-000000000000'}]}
     assert client.post('/internal/import/mappings', json=wrong, headers=headers).status_code == 409
+
+
+
+def test_query_timezone_offsets_are_normalized_to_utc(db, monkeypatch):
+    item = setup_market(db, monkeypatch)
+    assert post([RECORD]).status_code == 200
+    result = client.get(f'/v1/items/{item}/prices', params={
+        'from': '2026-01-01T08:00:00+08:00', 'to': '2026-01-01T08:00:00+08:00'}).json()
+    assert len(result['series']) == 1
+    assert result['series'][0]['as_of'].startswith('2026-01-01T00:00:00')

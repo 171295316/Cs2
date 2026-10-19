@@ -16,7 +16,8 @@ Range = Literal['7D', '30D', '1Y', 'ALL']
 
 
 def interval(from_at: datetime | None, to_at: datetime | None, period: str):
-    end = to_at or datetime.now(timezone.utc)
+    from_at = utc(from_at) if from_at else None
+    end = utc(to_at) if to_at else datetime.now(timezone.utc)
     if from_at and from_at > end:
         raise HTTPException(422, 'from must precede to')
     days = {'7D': 7, '30D': 30, '1Y': 365}.get(period)
