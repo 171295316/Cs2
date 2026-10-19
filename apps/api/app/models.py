@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import JSON, BigInteger, Boolean, DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -61,3 +61,72 @@ class Mapping(Base):
     verified_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     dataset_revision: Mapped[str] = mapped_column(String(250))
     evidence_url: Mapped[str] = mapped_column(Text)
+
+
+class SourceGrant(Base):
+    __tablename__ = 'source_grants'
+    __table_args__ = (UniqueConstraint('source_id', 'dataset'),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    source_id: Mapped[str] = mapped_column(ForeignKey('data_sources.id'), index=True)
+    dataset: Mapped[str] = mapped_column(String(20))
+    license_reference: Mapped[str] = mapped_column(Text)
+    approved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class Price(Base):
+    __tablename__ = 'price_observations'
+    __table_args__ = (UniqueConstraint('source_id', 'source_record_key'),
+                     UniqueConstraint('mapping_id', 'observed_at', 'price_kind', 'currency', 'bucket_duration'),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    item_id: Mapped[str] = mapped_column(ForeignKey('items.id'), index=True)
+    variant_id: Mapped[str | None] = mapped_column(ForeignKey('item_variants.id'), index=True)
+    source_id: Mapped[str] = mapped_column(ForeignKey('data_sources.id'), index=True)
+    mapping_id: Mapped[str] = mapped_column(ForeignKey('source_item_mappings.id'))
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    bucket_duration: Mapped[str] = mapped_column(String(10))
+    price_kind: Mapped[str] = mapped_column(String(30))
+    currency: Mapped[str] = mapped_column(String(3))
+    minor_units: Mapped[int] = mapped_column(BigInteger)
+    volume: Mapped[int | None] = mapped_column(BigInteger)
+    source_record_key: Mapped[str] = mapped_column(String(250))
+    evidence_url: Mapped[str] = mapped_column(Text)
+    coverage: Mapped[str] = mapped_column(Text)
+    methodology: Mapped[str] = mapped_column(Text)
+    ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class Supply(Base):
+    __tablename__ = 'supply_snapshots'
+    __table_args__ = (UniqueConstraint('source_id', 'source_record_key'),
+                     UniqueConstraint('mapping_id', 'measured_at', 'metric_type', 'methodology_version'),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    item_id: Mapped[str] = mapped_column(ForeignKey('items.id'), index=True)
+    variant_id: Mapped[str | None] = mapped_column(ForeignKey('item_variants.id'), index=True)
+    source_id: Mapped[str] = mapped_column(ForeignKey('data_sources.id'), index=True)
+    mapping_id: Mapped[str] = mapped_column(ForeignKey('source_item_mappings.id'))
+    measured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    metric_type: Mapped[str] = mapped_column(String(40), index=True)
+    quantity: Mapped[int] = mapped_column(BigInteger)
+    methodology_version: Mapped[str] = mapped_column(String(100))
+    coverage_note: Mapped[str] = mapped_column(Text)
+    sampling_method: Mapped[str] = mapped_column(Text)
+    confidence_low: Mapped[int | None] = mapped_column(BigInteger)
+    confidence_high: Mapped[int | None] = mapped_column(BigInteger)
+    model_evidence_url: Mapped[str | None] = mapped_column(Text)
+    evidence_url: Mapped[str] = mapped_column(Text)
+    source_record_key: Mapped[str] = mapped_column(String(250))
+    ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class ImportJob(Base):
+    __tablename__ = 'import_jobs'
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    provider: Mapped[str] = mapped_column(String(100))
+    job_type: Mapped[str] = mapped_column(String(30))
+    status: Mapped[str] = mapped_column(String(30))
+    cursor: Mapped[str | None] = mapped_column(Text)
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error_summary: Mapped[str | None] = mapped_column(Text)

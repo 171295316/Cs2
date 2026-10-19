@@ -1,9 +1,13 @@
 import Link from 'next/link';
+import Image from 'next/image';
+import SupplyPanel from '../../../components/SupplyPanel';
+import PricePanel, { type MarketParams } from '../../../components/PricePanel';
 import { notFound } from 'next/navigation';
 import { api, categories, type Item, type Provenance, type Variant } from '../../../lib/api';
 
-export default async function Detail({ params }: { params: Promise<{ id: string }> }) {
+export default async function Detail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<MarketParams> }) {
   const { id } = await params;
+  const filters = await searchParams;
   const result = await api<Item & { provenance: Provenance[] }>(`/v1/items/${encodeURIComponent(id)}`);
   if (result.status === 404 || result.status === 422) notFound();
   if (!result.data) return <main className="mx-auto max-w-5xl p-8"><Link href="/items">← 饰品目录</Link><p role="status">目录服务暂时不可用，请稍后重试。</p></main>;
@@ -11,17 +15,19 @@ export default async function Detail({ params }: { params: Promise<{ id: string 
   const variants = await api<{ items: Variant[] }>(`/v1/items/${encodeURIComponent(id)}/variants`);
   return <main className="mx-auto max-w-5xl p-8">
     <Link href="/items">← 饰品目录</Link>
+    {item.image_url && <Image className="my-6 rounded-xl object-contain" src={item.image_url} width={160} height={160} alt={item.name_zh || item.name_en} unoptimized />}
     <h1 className="my-6 text-3xl">{item.name_zh || item.name_en}</h1><p>{item.name_en}</p>
     <p className="text-slate-400">{categories[item.category]} · {item.canonical_key}</p>
+    <div className="my-6 flex flex-wrap gap-3"><Link className="rounded border border-slate-600 p-2" href={`/items/${id}`}>基础物品</Link>
+      {variants.data?.items.map(v => <Link className="max-w-full break-all rounded border border-slate-600 p-2 text-sm" key={v.id} href={`/items/${id}?variant_id=${v.id}`}>{v.market_hash_name || v.variant_key}</Link>)}</div>
     <h2 className="mb-3 mt-8 text-xl">可核实变体</h2>
     {!variants.data ? <p>变体服务暂时不可用。</p> : variants.data.items.length === 0 ? <p>暂无可核实变体数据。</p>
       : <ul className="space-y-3">{variants.data.items.map(v => <li key={v.id} className="rounded border border-slate-700 p-4">
         <p>{v.market_hash_name || v.variant_key}</p>
         <p className="text-sm text-slate-400">磨损：{v.wear || '未知'} · StatTrak：{v.stattrak === null ? '未知' : v.stattrak ? '是' : '否'} · 纪念品：{v.souvenir === null ? '未知' : v.souvenir ? '是' : '否'}</p>
       </li>)}</ul>}
-    <div className="my-8 grid gap-4 md:grid-cols-2">{['历史价格', '市场供给 / 存世量'].map(title => <section key={title} className="rounded-xl border border-slate-700 p-6">
-      <h2 className="mb-3 text-xl">{title}</h2><p>暂无可核实数据</p><p className="mt-2 text-sm text-slate-400">等待授权来源及真实时间记录。在售数量不等于总存世量。</p>
-    </section>)}</div>
+    <PricePanel id={id} params={filters} />
+    <SupplyPanel id={id} params={filters} />
     <h2 className="mb-4 text-xl">目录来源与核验时间</h2>
     <ul className="space-y-4">{item.provenance.map(p => <li key={`${p.source}:${p.external_key}`} className="break-all rounded border border-slate-700 p-4">
       <p>{p.name} · {p.external_key}</p><p>核验时间：{p.as_of}</p><p>数据版本：{p.dataset_revision}</p>

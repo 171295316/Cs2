@@ -1,0 +1,149 @@
+{
+  "$defs": {
+    "SupplyInput": {
+      "additionalProperties": false,
+      "properties": {
+        "external_key": {
+          "maxLength": 90,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9_.:/-]+$",
+          "title": "External Key",
+          "type": "string"
+        },
+        "source_record_key": {
+          "maxLength": 250,
+          "minLength": 1,
+          "title": "Source Record Key",
+          "type": "string"
+        },
+        "measured_at": {
+          "format": "date-time",
+          "title": "Measured At",
+          "type": "string"
+        },
+        "metric_type": {
+          "enum": [
+            "observed_distinct_instances",
+            "public_inventory_units",
+            "listed_units",
+            "estimated_total_units"
+          ],
+          "title": "Metric Type",
+          "type": "string"
+        },
+        "quantity": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "methodology_version": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Methodology Version",
+          "type": "string"
+        },
+        "coverage_note": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Coverage Note",
+          "type": "string"
+        },
+        "sampling_method": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Sampling Method",
+          "type": "string"
+        },
+        "evidence_url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Evidence Url",
+          "type": "string"
+        },
+        "confidence_low": {
+          "anyOf": [
+            {
+              "maximum": 9223372036854775807,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence Low"
+        },
+        "confidence_high": {
+          "anyOf": [
+            {
+              "maximum": 9223372036854775807,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence High"
+        },
+        "model_evidence_url": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "maxLength": 2083,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Evidence Url"
+        }
+      },
+      "required": [
+        "external_key",
+        "source_record_key",
+        "measured_at",
+        "metric_type",
+        "quantity",
+        "methodology_version",
+        "coverage_note",
+        "sampling_method",
+        "evidence_url"
+      ],
+      "title": "SupplyInput",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "source_code": {
+      "maxLength": 90,
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9_.:/-]+$",
+      "title": "Source Code",
+      "type": "string"
+    },
+    "records": {
+      "items": {
+        "$ref": "#/$defs/SupplyInput"
+      },
+      "maxItems": 1000,
+      "minItems": 1,
+      "title": "Records",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source_code",
+    "records"
+  ],
+  "title": "SupplyBatch",
+  "type": "object"
+}

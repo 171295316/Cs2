@@ -1,0 +1,86 @@
+{
+  "$defs": {
+    "MappingInput": {
+      "additionalProperties": false,
+      "properties": {
+        "external_key": {
+          "maxLength": 90,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9_.:/-]+$",
+          "title": "External Key",
+          "type": "string"
+        },
+        "item_id": {
+          "format": "uuid",
+          "title": "Item Id",
+          "type": "string"
+        },
+        "variant_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Variant Id"
+        }
+      },
+      "required": [
+        "external_key",
+        "item_id"
+      ],
+      "title": "MappingInput",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "source_code": {
+      "maxLength": 90,
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9_.:/-]+$",
+      "title": "Source Code",
+      "type": "string"
+    },
+    "verified_at": {
+      "format": "date-time",
+      "title": "Verified At",
+      "type": "string"
+    },
+    "dataset_revision": {
+      "maxLength": 250,
+      "minLength": 1,
+      "title": "Dataset Revision",
+      "type": "string"
+    },
+    "evidence_url": {
+      "format": "uri",
+      "maxLength": 2083,
+      "minLength": 1,
+      "title": "Evidence Url",
+      "type": "string"
+    },
+    "mappings": {
+      "items": {
+        "$ref": "#/$defs/MappingInput"
+      },
+      "maxItems": 1000,
+      "minItems": 1,
+      "title": "Mappings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source_code",
+    "verified_at",
+    "dataset_revision",
+    "evidence_url",
+    "mappings"
+  ],
+  "title": "MappingBatch",
+  "type": "object"
+}

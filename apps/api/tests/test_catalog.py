@@ -197,3 +197,14 @@ def test_all_supported_categories_and_nullable_flags(db, monkeypatch):
         assert len(response['items']) == 1
         assert response['items'][0]['tradable'] is None
         assert response['items'][0]['marketable'] is None
+
+
+def test_revoking_source_hides_catalog_and_detail(db, monkeypatch):
+    approve(db)
+    assert submit(monkeypatch).status_code == 200
+    item = client.get('/v1/items').json()['items'][0]
+    source = db.scalar(select(Source))
+    source.redistribution_allowed = False
+    db.commit()
+    assert client.get('/v1/items').json()['items'] == []
+    assert client.get('/v1/items/' + item['id']).status_code == 404
