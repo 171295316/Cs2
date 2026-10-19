@@ -8,6 +8,12 @@ services:
       API_URL: http://api:8000
     depends_on:
       api: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      start_period: 10s
+      retries: 20
   api:
     build: ./apps/api
     ports: ["8000:8000"]
@@ -31,6 +37,11 @@ services:
       REDIS_URL: redis://redis:6379/0
     depends_on:
       api: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; from redis import Redis; assert Redis.from_url(os.environ['REDIS_URL']).get('cs2:worker:heartbeat') == b'ok'"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
   db:
     image: postgres:16-alpine
     environment:

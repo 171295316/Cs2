@@ -167,3 +167,33 @@ def test_oversized_import_rejected_before_json_parse(monkeypatch):
     response = client.post('/internal/import/catalog', content=b'x' * (2 * 1024 * 1024 + 1),
                            headers={'Content-Type': 'application/json'})
     assert response.status_code == 413
+
+
+def test_delimiter_characters_cannot_collide_stable_ids(db, monkeypatch):
+    approve(db)
+    batch = copy.deepcopy(BATCH)
+    batch['items'] = [
+        {'external_key': 'a:b', 'category': 'skin', 'name_en': 'TEST ONLY A',
+         'variants': [{'external_key': 'c'}]},
+        {'external_key': 'a', 'category': 'skin', 'name_en': 'TEST ONLY B',
+         'variants': [{'external_key': 'b:c'}]}]
+    assert submit(monkeypatch, batch).status_code == 200
+    rows = db.scalars(select(Variant)).all()
+    assert len({row.id for row in rows}) == 2
+    assert len({row.item_id for row in rows}) == 2
+
+
+def test_all_supported_categories_and_nullable_flags(db, monkeypatch):
+    from typing import get_args
+
+    from app.catalog import Category
+    approve(db)
+    batch = copy.deepcopy(BATCH)
+    batch['items'] = [{'external_key': 'test-' + category, 'category': category,
+                       'name_en': 'TEST ONLY ' + category} for category in get_args(Category)]
+    assert submit(monkeypatch, batch).status_code == 200
+    for category in get_args(Category):
+        response = client.get('/v1/items', params={'category': category}).json()
+        assert len(response['items']) == 1
+        assert response['items'][0]['tradable'] is None
+        assert response['items'][0]['marketable'] is None

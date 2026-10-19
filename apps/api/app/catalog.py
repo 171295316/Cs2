@@ -1,4 +1,5 @@
 """Normalized, provenance-preserving catalog import; no network scraping."""
+import json
 from datetime import datetime, timezone
 from typing import Annotated, Literal
 from uuid import NAMESPACE_URL, uuid5
@@ -70,7 +71,7 @@ def import_catalog(db: Session, batch: CatalogImport) -> dict:
     if source is None or source.redistribution_allowed is not True or source.license_status != 'approved':
         raise PermissionError('Source requires server-side approval and redistribution evidence')
     for record in batch.items:
-        key = source.code + ':' + record.external_key
+        key = json.dumps([source.code, record.external_key], separators=(',', ':'))
         item_id = stable_id('item:' + key)
         item = db.get(Item, item_id)
         values = record.model_dump(exclude={'variants', 'external_key', 'image_url'})
@@ -85,7 +86,7 @@ def import_catalog(db: Session, batch: CatalogImport) -> dict:
         db.flush()
         map_record(db, source, batch, record.external_key, item_id, None)
         for variant in record.variants:
-            variant_key = key + ':' + variant.external_key
+            variant_key = json.dumps([source.code, record.external_key, variant.external_key], separators=(',', ':'))
             variant_id = stable_id('variant:' + variant_key)
             existing = db.get(Variant, variant_id)
             values = variant.model_dump(exclude={'external_key'})
@@ -112,7 +113,7 @@ def map_record(db: Session, source: Source, batch: CatalogImport, external_key: 
         if batch.verified_at < previous:
             raise ImportConflict('Stale import would overwrite newer provenance')
     else:
-        mapping = Mapping(id=stable_id('mapping:' + source.code + ':' + external_key),
+        mapping = Mapping(id=stable_id('mapping:' + json.dumps([source.code, external_key], separators=(',', ':'))),
                           source_id=source.id, external_key=external_key, item_id=item_id, variant_id=variant_id)
         db.add(mapping)
     mapping.verified_at = batch.verified_at
