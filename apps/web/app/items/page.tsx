@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default async function Items({searchParams}:{searchParams:Promise<{query?:string}>}){const {query=""}=await searchParams;return <main className="mx-auto max-w-5xl p-8"><Link href="/">← 返回首页</Link><h1 className="my-6 text-3xl font-semibold">饰品目录</h1><form><input name="query" defaultValue={query} placeholder="输入饰品名称"/></form><p className="mt-8 text-slate-400">暂无可核实的目录数据，等待获得合法数据源并执行导入。</p></main>}

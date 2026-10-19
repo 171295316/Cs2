@@ -1,0 +1,15 @@
+node_modules/
+.next/
+__pycache__/
+.pytest_cache/
+.venv/
+.env
+.env.*
+!.env.example
+*.pyc
+coverage/
+
+*.db
+*.tsbuildinfo
+.mypy_cache/
+.ruff_cache/

@@ -1,0 +1,42 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: cs2
+          POSTGRES_PASSWORD: ci_only
+          POSTGRES_DB: cs2
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U cs2" --health-interval 5s --health-retries 15
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    env:
+      DATABASE_URL: postgresql+psycopg://cs2:ci_only@localhost:5432/cs2
+      REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build
+      - run: pip install -r apps/api/requirements-dev.txt
+      - run: ruff check --config apps/api/pyproject.toml apps/api apps/worker && mypy apps/api/app
+      - working-directory: apps/api
+        run: |
+          alembic upgrade head
+          alembic downgrade base
+          alembic upgrade head
+          python -m pytest -q
