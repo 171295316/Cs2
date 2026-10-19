@@ -34,7 +34,7 @@ test('隔离演示记录：目录→价格全历史→缺口→在售数量→�
   await page.getByRole('link', { name: '快照来源证明', exact: true }).getAttribute('href').then(href => expect(href).toContain('example.invalid'));
   await expect(page.getByText('TEST ONLY <script>alert(1)</script>', { exact: true })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
   expect(errors).toEqual([]);
   await page.getByRole('link', { name: /test-variant/ }).click();
   await expect(page.getByRole('status').first()).toContainText('暂无可核实数据');

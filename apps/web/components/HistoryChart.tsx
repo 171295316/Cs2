@@ -34,6 +34,6 @@ export default function HistoryChart({ points, exponent = 0, cadence = 86400, co
     return () => chart.remove();
   }, [points, exponent, cadence, safe, connect]);
   if (!safe) return <p>数值超过图表安全精度，请查看下方原始记录。</p>;
-  return <div><div ref={host} role="img" aria-label="仅由可核实记录绘制的历史趋势，缺口不连线" />
+  return <div className="min-w-0 max-w-full overflow-hidden"><div className="w-full min-w-0 max-w-full overflow-hidden" ref={host} role="img" aria-label="仅由可核实记录绘制的历史趋势，缺口不连线" />
     <a className="text-xs text-slate-400" href="https://www.tradingview.com/" target="_blank" rel="noreferrer">图表由 TradingView Lightweight Charts 提供</a></div>;
 }
