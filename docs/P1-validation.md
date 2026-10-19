@@ -11,7 +11,7 @@
 
 - Python pytest: **21 passed, 1 skipped** (PostgreSQL integration requires a PostgreSQL server), one upstream Starlette TestClient deprecation warning.
 - SQLite Alembic `upgrade head → downgrade base → upgrade head`: passed, now at `0002`.
-- Ruff, mypy, ESLint, TypeScript, Node test (1 passed), Next.js production build: passed.
+- Ruff, mypy, ESLint, TypeScript, Next.js production build: passed.
 - Playwright Chromium 1.56.1: **1 passed** against a real FastAPI process and production Next.js server (home → Chinese search → category → empty state → methodology). Initial download mirror returned a truncated archive; the alternate official mirror succeeded. API and browser must run in the same process/network environment for this local runtime.
 - Local Docker/PostgreSQL/Redis are unavailable. CI runs PostgreSQL migrations/transaction rollback, readiness, browser tests, plus a separate full Compose build/start job.
 

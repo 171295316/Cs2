@@ -39,8 +39,8 @@ docker compose exec api alembic current
 pnpm install --frozen-lockfile
 pnpm lint
 pnpm typecheck
-pnpm test
 pnpm build
+# 启动 API 后运行真实浏览器测试：pnpm test
 pnpm --filter cs2-market-web dev
 python -m venv .venv
 . .venv/bin/activate
