@@ -5,9 +5,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import AwareDatetime
 from sqlalchemy import func, select
-from sqlalchemy.exc import IntegrityError
 
-from app.catalog import ImportConflict
+from app.jobs import run_import
 from app.models import Price, Source, SourceGrant, Variant
 from app.observations import Currency, PriceBatch, PriceKind, Resolution, import_prices, utc
 from app.routes import DB, authenticate, item_or_404
@@ -35,16 +34,7 @@ def validate_variant(db, item_id: str, variant_id: UUID | None):
 
 @router.post('/internal/import/prices', dependencies=[Depends(authenticate)])
 def ingest(batch: PriceBatch, db: DB):
-    try:
-        result = import_prices(db, batch)
-        db.commit()
-        return result
-    except PermissionError as exc:
-        db.rollback()
-        raise HTTPException(403, str(exc)) from None
-    except (ImportConflict, IntegrityError):
-        db.rollback()
-        raise HTTPException(409, 'Conflicting observation or unknown mapping; batch rolled back') from None
+    return run_import(db, batch.source_code, 'prices', lambda: import_prices(db, batch))
 
 
 @router.get('/v1/items/{item_id}/prices')

@@ -1,10 +1,7 @@
+import { definitions } from '../lib/market';
 import { api } from '../lib/api';
 import type { MarketParams } from './PricePanel';
 import HistoryChart from './HistoryChart';
-export const definitions: Record<string, string> = {
-  observed_distinct_instances: '已发现独立实例数', public_inventory_units: '公开库存可见样本',
-  listed_units: '平台在售数量', estimated_total_units: '有依据的估算总量',
-};
 type Snapshot = { as_of: string; quantity: string; coverage: string; sampling_method: string;
   methodology_version: string; confidence_low: string | null; confidence_high: string | null;
   model_evidence_url: string | null; evidence_url: string; source_record_key: string };

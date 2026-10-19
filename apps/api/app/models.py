@@ -117,3 +117,16 @@ class Supply(Base):
     evidence_url: Mapped[str] = mapped_column(Text)
     source_record_key: Mapped[str] = mapped_column(String(250))
     ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class ImportJob(Base):
+    __tablename__ = 'import_jobs'
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    provider: Mapped[str] = mapped_column(String(100))
+    job_type: Mapped[str] = mapped_column(String(30))
+    status: Mapped[str] = mapped_column(String(30))
+    cursor: Mapped[str | None] = mapped_column(Text)
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error_summary: Mapped[str | None] = mapped_column(Text)

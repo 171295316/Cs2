@@ -8,12 +8,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy import or_, select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.catalog import CatalogImport, Category, ImportConflict, import_catalog
+from app.catalog import CatalogImport, Category, import_catalog
 from app.db import SessionLocal
-from app.models import Item, Mapping, Source, Variant
+from app.jobs import run_import
+from app.models import Item, Mapping, Source, SourceGrant, Variant
+from app.observations import utc
 
 router = APIRouter()
 
@@ -26,8 +27,13 @@ def database():
 DB = Annotated[Session, Depends(database)]
 
 
+def catalog_access():
+    return select(Mapping.item_id).join(Source).where(Source.license_status == 'approved',
+                                                     Source.redistribution_allowed.is_(True))
+
+
 def item_or_404(db: Session, item_id: UUID) -> Item:
-    item = db.get(Item, str(item_id))
+    item = db.scalar(select(Item).where(Item.id == str(item_id), Item.id.in_(catalog_access())))
     if item is None:
         raise HTTPException(404, 'Item not found')
     return item
@@ -37,13 +43,13 @@ def provenance(db: Session, item_id: str) -> list[dict]:
     rows = db.execute(select(Mapping, Source).join(Source).where(Mapping.item_id == item_id)
                       .order_by(Source.code, Mapping.external_key)).all()
     return [{'source': source.code, 'name': source.name, 'external_key': mapping.external_key,
-             'variant_id': mapping.variant_id, 'as_of': mapping.verified_at,
+             'variant_id': mapping.variant_id, 'as_of': utc(mapping.verified_at),
              'dataset_revision': mapping.dataset_revision, 'evidence_url': mapping.evidence_url,
              'license_reference': source.license_reference} for mapping, source in rows]
 
 
 def item_json(item: Item) -> dict:
-    return {field: getattr(item, field) for field in ['id', 'canonical_key', 'category', 'name_en', 'name_zh',
+    return {field: utc(item.updated_at) if field == 'updated_at' else getattr(item, field) for field in ['id', 'canonical_key', 'category', 'name_en', 'name_zh',
             'market_hash_name', 'image_url', 'tradable', 'marketable', 'attributes_json', 'updated_at']}
 
 
@@ -53,7 +59,7 @@ def items(db: DB, query: str = Query('', max_length=200), category: Category | N
           sort: str = Query('id', pattern='^id$')):
     query = query.strip()
     scope = hashlib.sha256(json.dumps([query, category, sort]).encode()).hexdigest()
-    stmt = select(Item)
+    stmt = select(Item).where(Item.id.in_(catalog_access()))
     if query:
         escaped = query.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
         pattern = '%' + escaped + '%'
@@ -96,27 +102,23 @@ def variants(item_id: UUID, db: DB):
 @router.get('/v1/sources')
 def sources(db: DB):
     rows = db.scalars(select(Source).order_by(Source.code)).all()
-    return {'items': [{field: getattr(s, field) for field in ['code', 'name', 'homepage', 'license_status',
-                     'license_reference', 'redistribution_allowed', 'updated_at']} for s in rows]}
+    return {'items': [{**{field: utc(s.updated_at) if field == 'updated_at' else getattr(s, field) for field in ['code', 'name', 'homepage', 'license_status',
+                     'license_reference', 'redistribution_allowed', 'updated_at']},
+                     'grants': [{'dataset': g.dataset, 'license_reference': g.license_reference,
+                                 'approved_at': utc(g.approved_at), 'enabled': g.enabled}
+                                for g in db.scalars(select(SourceGrant).where(SourceGrant.source_id == s.id)).all()]}
+                     for s in rows]}
+
 
 
 def authenticate(authorization: Annotated[str | None, Header()] = None):
     token = os.environ.get('IMPORT_TOKEN', '')
     if not token:
         raise HTTPException(503, 'Imports are disabled')
-    if not authorization or not secrets.compare_digest(authorization, 'Bearer ' + token):
+    if not authorization or not secrets.compare_digest(authorization.encode(), ('Bearer ' + token).encode()):
         raise HTTPException(401, 'Authentication required', headers={'WWW-Authenticate': 'Bearer'})
 
 
 @router.post('/internal/import/catalog', dependencies=[Depends(authenticate)])
 def import_items(batch: CatalogImport, db: DB):
-    try:
-        result = import_catalog(db, batch)
-        db.commit()
-        return result
-    except PermissionError as exc:
-        db.rollback()
-        raise HTTPException(403, str(exc)) from None
-    except (ImportConflict, IntegrityError):
-        db.rollback()
-        raise HTTPException(409, 'Conflicting or stale source mapping; whole batch rolled back') from None
+    return run_import(db, batch.source_code, 'catalog', lambda: import_catalog(db, batch))

@@ -15,10 +15,10 @@ export const categories: Record<string, string> = {
   sticker: '贴纸', capsule: '胶囊', agent: '探员', music_kit: '音乐盒', keychain: '挂件',
   graffiti: '涂鸦', patch: '布章', tool: '工具', other: '其他',
 };
-export async function api<T>(path: string): Promise<{ data: T | null; status: number }> {
+export async function api<T>(path: string, cacheMetadata = false): Promise<{ data: T | null; status: number }> {
   try {
     const response = await fetch(`${process.env.API_URL || 'http://localhost:8000'}${path}`, {
-      cache: 'no-store', signal: AbortSignal.timeout(5000),
+      ...(cacheMetadata ? { next: { revalidate: 15 } } : { cache: 'no-store' as const }), signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) return { data: null, status: response.status };
     return { data: await response.json() as T, status: response.status };

@@ -1,3 +1,4 @@
+import { exactAmount } from '../lib/market';
 import { api } from '../lib/api';
 import HistoryChart from './HistoryChart';
 export type MarketParams = Record<string, string | undefined>;
@@ -7,10 +8,6 @@ export type PriceData = { status: string; reason: string | null; source: string 
   price_kind: string; resolution: string; minor_unit_exponent: number; earliest_available_at: string | null;
   latest_at: string | null; as_of: string | null; gaps: { from: string; to: string }[]; series: PricePoint[];
   options: { source: string; currency: string; price_kind: string; resolution: string }[] };
-export function exactAmount(value: string, exponent: number) {
-  const padded = value.padStart(exponent + 1, '0');
-  return exponent ? `${padded.slice(0, -exponent)}.${padded.slice(-exponent)}` : padded;
-}
 export default async function PricePanel({ id, params }: { id: string; params: MarketParams }) {
   const query = new URLSearchParams();
   for (const name of ['variant_id', 'source', 'currency', 'price_kind', 'resolution', 'range']) {

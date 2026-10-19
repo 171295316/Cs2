@@ -102,3 +102,16 @@ def test_second_source_never_merged_and_missing_not_zero(db, monkeypatch):
     assert post([RECORD]).status_code == 200
     assert client.get(f'/v1/items/{item}/prices?source=another').json()['series'] == []
     assert client.get(f'/v1/items/{item}/prices?from=2026-02-01T00:00:00Z&to=2026-01-01T00:00:00Z').status_code == 422
+
+
+def test_import_jobs_record_success_and_failure_without_raw_payload(db, monkeypatch):
+    from app.models import ImportJob
+    setup_market(db, monkeypatch)
+    response = post([RECORD])
+    job = db.get(ImportJob, response.json()['job_id'])
+    assert job.status == 'completed'
+    assert job.job_type == 'prices'
+    assert post([{**RECORD, 'minor_units': 999}]).status_code == 409
+    failed = db.scalar(select(ImportJob).where(ImportJob.status == 'failed'))
+    assert '冲突' in failed.error_summary
+    assert 'minor_units' not in failed.error_summary

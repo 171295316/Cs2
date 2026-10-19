@@ -42,7 +42,14 @@ jobs:
           python -m pytest -q
       - name: Start real API for browser tests
         working-directory: apps/api
+        env:
+          DATABASE_URL: postgresql+psycopg://cs2:ci_only@localhost:5432/cs2_e2e
+          IMPORT_TOKEN: ci-browser-test-only
+          CS2_E2E_MODE: '1'
         run: |
+          python -c "from sqlalchemy import create_engine, text; e=create_engine('postgresql+psycopg://cs2:ci_only@localhost:5432/cs2', isolation_level='AUTOCOMMIT'); c=e.connect(); c.execute(text('CREATE DATABASE cs2_e2e')); c.close()"
+          alembic upgrade head
+          python -m tests.e2e_seed
           uvicorn app.main:app --host 127.0.0.1 --port 8000 > /tmp/api.log 2>&1 &
           for attempt in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:8000/readyz; then exit 0; fi

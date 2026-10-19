@@ -128,3 +128,50 @@ JSON 格式见 `docs/import/supply.schema.json`；CSV 表头见 `docs/import/sup
 `estimated_total_units` 另外必须提供 confidence_low、confidence_high、model_evidence_url；估算上下界必须包含 quantity。没有校准方法就不登记估算来源，也不导入该口径。公开样本、已发现实例、在售数均不得作为估算总量冒充。
 
 `/v1/items/{id}/supply` 支持 variant_id、source、metric_type、methodology_version、range、from、to。不同版本不拼接；任意采样时间不推断成每天都有快照。撤销供给专项许可后，公开查询立即隐藏该源。
+
+## P4 排行、撤销与上线检查
+
+数据库版本 `0005` 加入复合索引。`GET /v1/rankings` 需明确 `source`，可指定 `metric`、`currency`、`category`、`max_age_days`（1–30，默认 7）、`limit`。价格排行仅用原始每日记录；供给排行还必须固定 `methodology_version`。基础物品与变体不混合，估算总量不进行缺少区间的单值排序。
+
+撤销数据授权：在宿主端运行登记命令同样的 code/name/homepage/license-reference 参数，增加 `--disable --scope prices` 或 `--scope supply`。撤销整个来源用 `--disable --scope catalog`。停用不需要 `--confirm-redistribution-rights`。价格/供给/目录公开读数实时检查权限；方法页的来源元数据有 15 秒缓存，可能短暂保留登记状态，但不会恢复数据 API 权限。
+
+应用提供进程内每 IP 600 请求/分钟保护（健康检查豁免），不能替代多副本入口的统一限流。请在反向代理配置 TLS、管理路径访问限制及请求体限制；不要公开数据库/Redis 端口。日志只包含请求 ID、路径、方法和状态，不含导入正文/凭证。上线前备份 PostgreSQL 并在单独发布任务执行迁移；不要多个 API 实例并发迁移。配置 IMPORT_TOKEN、POSTGRES_PASSWORD 后运行：
+
+```bash
+docker compose up --build --wait
+curl --fail http://localhost:8000/readyz
+docker compose exec api alembic current
+```
+
+完整开发验证：
+
+```bash
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm typecheck
+pnpm build
+pip install -r apps/api/requirements-dev.txt
+ruff check --config apps/api/pyproject.toml apps/api apps/worker
+mypy --config-file apps/api/pyproject.toml apps/api/app
+cd apps/api
+alembic upgrade head
+python -m pytest -q
+```
+
+浏览器测试必须使用隔离数据库。生产启动不会执行演示种子。示例（新建、空的 SQLite 本地测试库；不与生产配置共用）：
+
+```bash
+# apps/api 目录，指定绝对路径，文件名必须 cs2_e2e.db。
+export DATABASE_URL=sqlite:////tmp/cs2-browser-test/cs2_e2e.db
+mkdir -p /tmp/cs2-browser-test
+export CS2_E2E_MODE=1
+alembic upgrade head
+python -m tests.e2e_seed
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+# 另一终端，仓库根目录；先按前述命令生成 Web 生产构建。
+API_URL=http://127.0.0.1:8000 pnpm test
+```
+
+重复安装种子需全新的隔离数据库（最新演示时间每次运行不同，原始记录不可覆盖）。不要对正常库设置 CS2_E2E_MODE。生产镜像不包含测试模块。CI 使用 PostgreSQL 16 的独立 cs2_e2e 数据库执行同一路径，并另以空数据 Compose 验证完整启动。
+
+每个通过鉴权与输入验证的导入请求返回 job_id，成功与失败状态保存在 import_jobs。失败记录只存概括原因，不保存请求正文、凭证或 SQL 错误。

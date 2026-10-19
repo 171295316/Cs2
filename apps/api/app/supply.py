@@ -7,9 +7,9 @@ from uuid import UUID
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, HttpUrl, ValidationError, model_validator
 from sqlalchemy import func, select
-from sqlalchemy.exc import IntegrityError
 
 from app.catalog import ImportConflict, Key, stable_id
+from app.jobs import run_import
 from app.models import Source, SourceGrant, Supply
 from app.observations import Count, authorized, resolve_mapping, utc
 from app.prices import Range, interval, validate_variant
@@ -86,16 +86,7 @@ def import_supply(db, batch: SupplyBatch):
 
 
 def transact(db, batch):
-    try:
-        result = import_supply(db, batch)
-        db.commit()
-        return result
-    except PermissionError as exc:
-        db.rollback()
-        raise HTTPException(403, str(exc)) from None
-    except (ImportConflict, IntegrityError):
-        db.rollback()
-        raise HTTPException(409, '来源映射未知或快照冲突，整批已回滚') from None
+    return run_import(db, batch.source_code, 'supply', lambda: import_supply(db, batch))
 
 
 @router.post('/internal/import/supply', dependencies=[Depends(authenticate)])
