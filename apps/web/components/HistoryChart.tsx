@@ -7,9 +7,12 @@ export default function HistoryChart({ points, exponent = 0, cadence = 86400, co
   points: ChartPoint[]; exponent?: number; cadence?: number; connect?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
+  // 图表使用秒级时间轴；不能把同一秒内的两条真实记录压成重复时间点。
+  const times = points.map(p => Math.floor(Date.parse(p.as_of) / 1000));
+  const timeSafe = times.every((t, i) => Number.isFinite(t) && (!i || t > times[i - 1]));
   const safe = points.every(p => Number.isSafeInteger(Number(p.value)));
   useEffect(() => {
-    if (!host.current || !safe || !points.length) return;
+    if (!host.current || !safe || !timeSafe || !points.length) return;
     const chart = createChart(host.current, { height: 300, autoSize: true,
       layout: { background: { type: ColorType.Solid, color: '#0f172a' }, textColor: '#cbd5e1', attributionLogo: true },
       grid: { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
@@ -32,8 +35,9 @@ export default function HistoryChart({ points, exponent = 0, cadence = 86400, co
     series.setData(data);
     chart.timeScale().fitContent();
     return () => chart.remove();
-  }, [points, exponent, cadence, safe, connect]);
+  }, [points, exponent, cadence, safe, timeSafe, connect]);
   if (!safe) return <p>数值超过图表安全精度，请查看下方原始记录。</p>;
+  if (!timeSafe) return <p>记录时间超出图表秒级精度，请查看下方原始记录。</p>;
   return <div className="min-w-0 max-w-full overflow-hidden"><div className="w-full min-w-0 max-w-full overflow-hidden" ref={host} role="img" aria-label="仅由可核实记录绘制的历史趋势，缺口不连线" />
     <a className="text-xs text-slate-400" href="https://www.tradingview.com/" target="_blank" rel="noreferrer">图表由 TradingView Lightweight Charts 提供</a></div>;
 }

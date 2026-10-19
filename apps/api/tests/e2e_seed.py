@@ -39,7 +39,13 @@ def main():
             {**common, 'source_record_key': 'e2e-price-1', 'observed_at': '2026-01-01T00:00:00Z', 'minor_units': 12345},
             {**common, 'source_record_key': 'e2e-price-2', 'observed_at': '2026-01-03T00:00:00Z', 'minor_units': 23456},
             {**common, 'source_record_key': 'e2e-latest', 'observed_at': (datetime.now(timezone.utc) - timedelta(days=1)).isoformat(),
-             'minor_units': 34567}]}))
+             'minor_units': 34567},
+            {**common, 'source_record_key': 'e2e-subsecond-1', 'external_key': 'test-variant', 'bucket_duration': '1h',
+             'observed_at': '2026-01-01T00:00:00.100Z', 'minor_units': 101},
+            {**common, 'source_record_key': 'e2e-subsecond-2', 'external_key': 'test-variant', 'bucket_duration': '1h',
+             'observed_at': '2026-01-01T00:00:00.200Z', 'minor_units': 102},
+            {**common, 'source_record_key': 'e2e-bigint', 'external_key': 'test-variant', 'bucket_duration': '1h',
+             'price_kind': 'ask_min', 'observed_at': '2026-01-01T00:00:00Z', 'minor_units': 9223372036854775807}]}))
         import_supply(db, SupplyBatch.model_validate({'source_code': source.code, 'records': [
             {'external_key': 'test-item', 'source_record_key': 'e2e-snapshot', 'measured_at': '2026-01-01T00:00:00Z',
              'metric_type': 'listed_units', 'quantity': 12, 'methodology_version': 'test-v1',

@@ -47,3 +47,21 @@ test('手机布局与近期有效样本排行', async ({ page }) => {
   const overflowing = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   expect(overflowing).toBe(false);
 });
+
+test('图表精度边界：亚秒记录与大整数保留精确原始表，不崩溃或改值', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/items?query=测试专用饰品');
+  await page.getByRole('link', { name: '测试专用饰品（演示）', exact: true }).click();
+  const variant = await page.getByRole('link', { name: /test-variant/ }).getAttribute('href');
+  await page.goto(`${variant}&resolution=1h`);
+  await expect(page.getByText('记录时间超出图表秒级精度，请查看下方原始记录。', { exact: true })).toBeVisible();
+  await page.getByText('原始记录、来源证据与方法（2 条）', { exact: true }).click();
+  await expect(page.getByRole('cell', { name: '1.01 USD', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '1.02 USD', exact: true })).toBeVisible();
+  await page.goto(`${variant}&resolution=1h&price_kind=ask_min`);
+  await expect(page.getByText('数值超过图表安全精度，请查看下方原始记录。', { exact: true })).toBeVisible();
+  await page.getByText('原始记录、来源证据与方法（1 条）', { exact: true }).click();
+  await expect(page.getByRole('cell', { name: '92233720368547758.07 USD', exact: true })).toBeVisible();
+  expect(errors).toEqual([]);
+});

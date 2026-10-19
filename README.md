@@ -177,3 +177,5 @@ API_URL=http://127.0.0.1:8000 pnpm test
 每个通过鉴权与输入验证的导入请求返回 job_id，成功与失败状态保存在 import_jobs。失败记录只存概括原因，不保存请求正文、凭证或 SQL 错误。
 
 跨平台对齐须有人工核验：使用同样的管理鉴权向 `/internal/import/mappings` 提交 source_code、verified_at、dataset_revision、evidence_url 和 mappings（external_key、既有 item_id、可选 variant_id）。模板见 `docs/import/mappings.schema.json`。该接口只关联已经核实的来源 ID，不按展示名称猜测；已有映射不得重新绑定，变体必须属于指定基础物品。先登记映射，再导入该来源的价格/供给；多来源价格依然分别查询，不拼接。
+
+图表为秒级时间轴；若同一秒内存在多条实际观测，或整数超出浏览器安全精度，会提示精度限制并保留精确原始表，不擅自聚合、修改时间或截断数值。
