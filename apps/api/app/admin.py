@@ -3,11 +3,12 @@ import argparse
 
 from app.catalog import stable_id
 from app.db import SessionLocal
-from app.models import Source
+from app.models import Source, SourceGrant
 
 
 def main():
     parser = argparse.ArgumentParser(description='Register source approval after checking redistribution rights')
+    parser.add_argument('--scope', choices=['catalog', 'prices', 'supply'], default='catalog')
     parser.add_argument('--code', required=True)
     parser.add_argument('--name', required=True)
     parser.add_argument('--homepage', required=True)
@@ -19,6 +20,10 @@ def main():
                         homepage=args.homepage, license_status='approved',
                         license_reference=args.license_reference, redistribution_allowed=True)
         db.merge(source)
+        db.flush()
+        if args.scope != 'catalog':
+            db.merge(SourceGrant(id=stable_id('grant:' + source.id + ':' + args.scope), source_id=source.id,
+                                 dataset=args.scope, license_reference=args.license_reference, enabled=True))
 
 
 if __name__ == '__main__':

@@ -101,3 +101,11 @@ pnpm --filter cs2-market-web test:e2e
 ```
 
 CI 验证 SQLite 单测、真实 PostgreSQL 迁移与事务、Redis readiness、浏览器核心路径，并另用 Docker Compose 构建启动全部服务。阶段结果见 docs/P0-validation.md 和 docs/P1-validation.md。P2–P4 为后续阶段，当前详情中的价格/供给面板保持无数据状态。
+
+## P2 历史价格
+
+迁移到 `0003` 后可使用 `/internal/import/prices` 提交规范化 JSON。先按 P1 导入真实来源映射，再以 `python -m app.admin ... --scope prices --confirm-redistribution-rights` 登记**该行情数据集**的明确二次展示许可；目录审批不代替行情审批。导入需要 Bearer token，格式见 `docs/import/prices.schema.json` 和 `/docs`。金额为严格整数最小货币单位（JPY 0 位、USD/CNY/EUR/GBP 2 位）；空价格不得用 0 填入，应不提交该观测。
+
+查询 `/v1/items/{id}/prices` 支持 `variant_id/source/currency/price_kind/resolution/range/from/to`；range 为 7D/30D/1Y/ALL，resolution 是实际原始记录粒度，不做插值或将小时中位数平均成每日中位数。超过 20000 条要求缩小范围或选已有每日记录。来源、币种、口径、变体完全隔离；撤销专项授权立即隐藏该数据。
+
+目前无已获许可的价格供应商，远程回填禁用。尤其 cs2.sh 普通条款限制另一个 API 的再分发，需专门许可；详见 docs/data-sources.md。图表只画实际记录；不从中位成交价生成虚构 OHLC。

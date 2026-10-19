@@ -1,9 +1,11 @@
 import Link from 'next/link';
+import PricePanel, { type MarketParams } from '../../../components/PricePanel';
 import { notFound } from 'next/navigation';
 import { api, categories, type Item, type Provenance, type Variant } from '../../../lib/api';
 
-export default async function Detail({ params }: { params: Promise<{ id: string }> }) {
+export default async function Detail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<MarketParams> }) {
   const { id } = await params;
+  const filters = await searchParams;
   const result = await api<Item & { provenance: Provenance[] }>(`/v1/items/${encodeURIComponent(id)}`);
   if (result.status === 404 || result.status === 422) notFound();
   if (!result.data) return <main className="mx-auto max-w-5xl p-8"><Link href="/items">← 饰品目录</Link><p role="status">目录服务暂时不可用，请稍后重试。</p></main>;
@@ -19,9 +21,7 @@ export default async function Detail({ params }: { params: Promise<{ id: string 
         <p>{v.market_hash_name || v.variant_key}</p>
         <p className="text-sm text-slate-400">磨损：{v.wear || '未知'} · StatTrak：{v.stattrak === null ? '未知' : v.stattrak ? '是' : '否'} · 纪念品：{v.souvenir === null ? '未知' : v.souvenir ? '是' : '否'}</p>
       </li>)}</ul>}
-    <div className="my-8 grid gap-4 md:grid-cols-2">{['历史价格', '市场供给 / 存世量'].map(title => <section key={title} className="rounded-xl border border-slate-700 p-6">
-      <h2 className="mb-3 text-xl">{title}</h2><p>暂无可核实数据</p><p className="mt-2 text-sm text-slate-400">等待授权来源及真实时间记录。在售数量不等于总存世量。</p>
-    </section>)}</div>
+    <PricePanel id={id} params={filters} />
     <h2 className="mb-4 text-xl">目录来源与核验时间</h2>
     <ul className="space-y-4">{item.provenance.map(p => <li key={`${p.source}:${p.external_key}`} className="break-all rounded border border-slate-700 p-4">
       <p>{p.name} · {p.external_key}</p><p>核验时间：{p.as_of}</p><p>数据版本：{p.dataset_revision}</p>

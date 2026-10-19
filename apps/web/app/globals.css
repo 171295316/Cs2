@@ -1,3 +1,5 @@
 @import "tailwindcss";
 :root {color-scheme:dark; background:#0d1422; color:#e8edf6; font-family:system-ui,sans-serif;}
 *{box-sizing:border-box} body{margin:0} a{color:#76bff7} input{width:100%;padding:13px;background:#18243a;color:white;border:1px solid #394a61;border-radius:10px}
+
+select { background: #0f172a; border: 1px solid #475569; border-radius: .4rem; padding: .5rem; margin-left: .4rem; }
