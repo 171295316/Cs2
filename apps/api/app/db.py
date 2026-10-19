@@ -8,5 +8,6 @@ class Base(DeclarativeBase):
     pass
 
 
-engine = create_engine(os.environ.get("DATABASE_URL", "sqlite:///./cs2.db"), pool_pre_ping=True)
+url = os.environ.get("DATABASE_URL", "sqlite:///./cs2.db")
+engine = create_engine(url, pool_pre_ping=True, connect_args={"connect_timeout": 3} if url.startswith("postgresql") else {})
 SessionLocal = sessionmaker(bind=engine)

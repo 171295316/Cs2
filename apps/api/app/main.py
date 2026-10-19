@@ -1,6 +1,6 @@
 import os
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -8,8 +8,11 @@ from redis import Redis
 from sqlalchemy import text
 
 from app.db import engine
+from app.limits import ImportBodyLimit
+from app.routes import router
 
 app = FastAPI(title="CS2 Market Intelligence API", version="0.1.0")
+app.add_middleware(ImportBodyLimit)
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000"], allow_credentials=False, allow_methods=["GET"], allow_headers=["*"])
 
 
@@ -29,7 +32,9 @@ def readyz():
     try:
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
-            connection.execute(text("SELECT version_num FROM alembic_version"))
+            revisions: set[str] = set(connection.execute(text("SELECT version_num FROM alembic_version")).scalars())
+            if revisions != {"0002"}:
+                return JSONResponse(status_code=503, content={"status": "unavailable"})
         with Redis.from_url(os.environ.get("REDIS_URL", "redis://localhost:6379/0"), socket_connect_timeout=2, socket_timeout=2) as cache:
             cache.ping()
     except Exception:
@@ -37,9 +42,7 @@ def readyz():
     return {"status": "ok", "database": "ok", "redis": "ok"}
 
 
-@app.get("/v1/items")
-def list_items(query: str = "", category: str | None = None, limit: int = Query(20, ge=1, le=100)):
-    return {"items": [], "next_cursor": None, "status": "catalog_not_imported"}
+app.include_router(router)
 
 
 @app.get("/v1/items/{item_id}/prices", response_model=UnavailableSeries)
