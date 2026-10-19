@@ -75,7 +75,7 @@ def prices(item_id: UUID, db: DB, variant_id: UUID | None = None,
         return result
     filtered = filtered.where(Source.code == selected)
     earliest, latest = db.execute(filtered.with_only_columns(func.min(Price.observed_at), func.max(Price.observed_at))).one()
-    result.update(earliest_available_at=earliest, latest_at=latest, as_of=latest)
+    result.update(earliest_available_at=utc(earliest) if earliest else None, latest_at=utc(latest) if latest else None, as_of=utc(latest) if latest else None)
     query = filtered.where(Price.observed_at <= end)
     if start:
         query = query.where(Price.observed_at >= start)

@@ -109,3 +109,22 @@ CI 验证 SQLite 单测、真实 PostgreSQL 迁移与事务、Redis readiness、
 查询 `/v1/items/{id}/prices` 支持 `variant_id/source/currency/price_kind/resolution/range/from/to`；range 为 7D/30D/1Y/ALL，resolution 是实际原始记录粒度，不做插值或将小时中位数平均成每日中位数。超过 20000 条要求缩小范围或选已有每日记录。来源、币种、口径、变体完全隔离；撤销专项授权立即隐藏该数据。
 
 目前无已获许可的价格供应商，远程回填禁用。尤其 cs2.sh 普通条款限制另一个 API 的再分发，需专门许可；详见 docs/data-sources.md。图表只画实际记录；不从中位成交价生成虚构 OHLC。
+
+## P3 供给快照
+
+迁移到 `0004`，登记 `--scope supply` 的数据集专项再分发许可。使用相同 Bearer token：
+
+```bash
+curl --fail -X POST http://localhost:8000/internal/import/supply \
+  -H "Authorization: Bearer ${IMPORT_TOKEN}" -H 'Content-Type: application/json' \
+  --data-binary @supply-batch.json
+curl --fail -X POST 'http://localhost:8000/internal/import/supply/csv?source_code=YOUR_APPROVED_SOURCE' \
+  -H "Authorization: Bearer ${IMPORT_TOKEN}" -H 'Content-Type: text/csv' \
+  --data-binary @verified-snapshots.csv
+```
+
+JSON 格式见 `docs/import/supply.schema.json`；CSV 表头见 `docs/import/supply-header.csv`（仅表头，无虚构示例值）。每条记录必须有既存来源 external_key、原始 UTC/带时区 measured_at、metric_type、quantity、methodology_version、coverage_note、sampling_method、evidence_url 和唯一 source_record_key。CSV 的数量列只接受非负整数，空 quantity 不合法；可选区间为空则表示未知。最多 1000 行/2 MiB。
+
+`estimated_total_units` 另外必须提供 confidence_low、confidence_high、model_evidence_url；估算上下界必须包含 quantity。没有校准方法就不登记估算来源，也不导入该口径。公开样本、已发现实例、在售数均不得作为估算总量冒充。
+
+`/v1/items/{id}/supply` 支持 variant_id、source、metric_type、methodology_version、range、from、to。不同版本不拼接；任意采样时间不推断成每天都有快照。撤销供给专项许可后，公开查询立即隐藏该源。

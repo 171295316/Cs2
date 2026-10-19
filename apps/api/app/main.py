@@ -10,6 +10,7 @@ from app.db import engine
 from app.limits import ImportBodyLimit
 from app.prices import router as prices_router
 from app.routes import router
+from app.supply import router as supply_router
 
 app = FastAPI(title="CS2 Market Intelligence API", version="0.1.0")
 app.add_middleware(ImportBodyLimit)
@@ -27,7 +28,7 @@ def readyz():
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
             revisions: set[str] = set(connection.execute(text("SELECT version_num FROM alembic_version")).scalars())
-            if revisions != {"0003"}:
+            if revisions != {"0004"}:
                 return JSONResponse(status_code=503, content={"status": "unavailable"})
         with Redis.from_url(os.environ.get("REDIS_URL", "redis://localhost:6379/0"), socket_connect_timeout=2, socket_timeout=2) as cache:
             cache.ping()
@@ -38,3 +39,4 @@ def readyz():
 
 app.include_router(router)
 app.include_router(prices_router)
+app.include_router(supply_router)

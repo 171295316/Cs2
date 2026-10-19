@@ -94,3 +94,26 @@ class Price(Base):
     coverage: Mapped[str] = mapped_column(Text)
     methodology: Mapped[str] = mapped_column(Text)
     ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class Supply(Base):
+    __tablename__ = 'supply_snapshots'
+    __table_args__ = (UniqueConstraint('source_id', 'source_record_key'),
+                     UniqueConstraint('mapping_id', 'measured_at', 'metric_type', 'methodology_version'),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    item_id: Mapped[str] = mapped_column(ForeignKey('items.id'), index=True)
+    variant_id: Mapped[str | None] = mapped_column(ForeignKey('item_variants.id'), index=True)
+    source_id: Mapped[str] = mapped_column(ForeignKey('data_sources.id'), index=True)
+    mapping_id: Mapped[str] = mapped_column(ForeignKey('source_item_mappings.id'))
+    measured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    metric_type: Mapped[str] = mapped_column(String(40), index=True)
+    quantity: Mapped[int] = mapped_column(BigInteger)
+    methodology_version: Mapped[str] = mapped_column(String(100))
+    coverage_note: Mapped[str] = mapped_column(Text)
+    sampling_method: Mapped[str] = mapped_column(Text)
+    confidence_low: Mapped[int | None] = mapped_column(BigInteger)
+    confidence_high: Mapped[int | None] = mapped_column(BigInteger)
+    model_evidence_url: Mapped[str | None] = mapped_column(Text)
+    evidence_url: Mapped[str] = mapped_column(Text)
+    source_record_key: Mapped[str] = mapped_column(String(250))
+    ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
